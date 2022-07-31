@@ -1,6 +1,5 @@
 package com.example.demo;
 
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -18,13 +18,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 
 @ExtendWith(SpringExtension.class)
 @WebFluxTest(controllers = PersonController.class)
-public class PersonControllerTest {
+class PersonControllerTest {
 
     @Autowired
     private WebTestClient webTestClient;
@@ -33,7 +32,7 @@ public class PersonControllerTest {
     private PersonService personService;
 
     @Captor
-    private ArgumentCaptor<Mono<Person>> argumentCaptor;
+    private ArgumentCaptor<Person> argumentCaptor;
 
     @MockBean
     private PersonRepository repository;
@@ -59,9 +58,9 @@ public class PersonControllerTest {
                 .expectBody().isEmpty();
 
         verify(personService).insert(argumentCaptor.capture());
-        verify(repository, times(times)).save(any());
+        verify(repository, times(1)).save(any());
 
-        var person = argumentCaptor.getValue().block();
+        var person = argumentCaptor.getValue();
 
         Assertions.assertEquals(name, person.getName());
 
@@ -69,6 +68,10 @@ public class PersonControllerTest {
 
     @Test
     void get() {
+        var personTest = new Person("Raul");
+        var id = "1";
+        when(repository.findById(id)).thenReturn(Mono.just(personTest));
+
         webTestClient.get()
                 .uri("/person/1")
                 .exchange()
@@ -78,21 +81,33 @@ public class PersonControllerTest {
                     var person = personEntityExchangeResult.getResponseBody();
                     assert person != null;
                 });
+
+        Mockito.verify(repository).findById(id);
     }
 
     @Test
     void update() {
-        var request = Mono.just(new Person());
+        var person = new Person("Kevin Felipe");
+        person.setId("1");
+        when(repository.findById("1")).thenReturn(Mono.just(person));
+        when(repository.save(person)).thenReturn(Mono.just(person));
+        var request = Mono.fromCallable(() -> {
+            person.setName("Brayan Vargas");
+            return person;
+        });
         webTestClient.put()
                 .uri("/person")
                 .body(request, Person.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody().isEmpty();
+                .expectBody();
     }
 
     @Test
     void delete() {
+        var person = new Person("Kevin Vargas");
+        person.setId("1");
+        when(repository.save(person)).thenReturn(Mono.just(person));
         webTestClient.delete()
                 .uri("/person/1")
                 .exchange()
