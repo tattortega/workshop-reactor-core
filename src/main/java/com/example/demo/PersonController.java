@@ -13,23 +13,8 @@ public class PersonController {
     private PersonService personService;
 
     @PostMapping
-    public Mono<Void> post(@RequestBody Mono<Person> personMono) {
+    public Mono<Person> post(@RequestBody Person personMono) {
         return personService.insert(personMono);
-    }
-
-    @GetMapping("/{id}")
-    public Mono<Person> getPerson(@PathVariable("id") String id) {
-        return Mono.just(new Person());
-    }
-
-    @PutMapping
-    public Mono<Void> update(@RequestBody Mono<Person> personMono) {
-        return Mono.empty();
-    }
-
-    @DeleteMapping("/{id}")
-    public Mono<Void> delete(@PathVariable("id") String id) {
-        return Mono.empty();
     }
 
     @GetMapping
@@ -37,5 +22,19 @@ public class PersonController {
         return personService.listAll();
     }
 
+    @GetMapping("/{id}")
+    public Mono<Person> getPerson(@PathVariable("id") String id) {
+        return personService.get(id);
+    }
+
+    @PutMapping
+    public Mono<Person> update(@RequestBody Mono<Person> personMono) {
+        return personService.update(personMono);
+    }
+
+    @DeleteMapping("/{id}")
+    public Mono<Void> delete(@PathVariable("id") String id) {
+        return personService.delete(id);
+    }
 
 }
